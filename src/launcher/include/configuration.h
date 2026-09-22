@@ -96,7 +96,7 @@ public:
 	int                    vblank_frequency            = 60;
 	int                    console_language            = DEFAULT_CONSOLE_LANGUAGE;
 	bool                   vulkan_validation_enabled   = false;
-	bool                   shader_validation_enabled   = true;
+	bool                   shader_validation_enabled   = false;
 	ShaderOptimizationType shader_optimization_type    = ShaderOptimizationType::Performance;
 	LogDirection           shader_log_direction        = LogDirection::Silent;
 	QString                shader_log_folder           = "_Shaders";

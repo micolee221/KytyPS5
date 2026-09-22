@@ -501,9 +501,11 @@ TranslateResult TranslateProgram(std::span<const uint32_t> code, const CompileOp
 		                                 .count());
 	};
 
-	LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " code_words=%" PRIu64 " decode\n",
-	     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
-	     static_cast<uint64_t>(code.size()));
+	if (options.dump_ir) {
+		LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " code_words=%" PRIu64 " decode\n",
+		     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
+		     static_cast<uint64_t>(code.size()));
+	}
 
 	Decoder::Program decoded;
 	std::vector<uint32_t> joined_code;
@@ -518,10 +520,12 @@ TranslateResult TranslateProgram(std::span<const uint32_t> code, const CompileOp
 	} else {
 		Decoder::DecodeProgram(code, decoded);
 	}
-	LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " decode instructions=%" PRIu64
-	     " elapsed_ms=%" PRIu64 "\n",
-	     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
-	     static_cast<uint64_t>(decoded.instructions.size()), phase_ms());
+	if (options.dump_ir) {
+		LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " decode instructions=%" PRIu64
+		     " elapsed_ms=%" PRIu64 "\n",
+		     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
+		     static_cast<uint64_t>(decoded.instructions.size()), phase_ms());
+	}
 
 	std::string decoded_dump;
 	if (options.dump_ir) {
@@ -531,30 +535,40 @@ TranslateResult TranslateProgram(std::span<const uint32_t> code, const CompileOp
 		}
 	}
 
-	LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " CFG BuildGraph\n", GetDumpLabel(options),
-	     StageName(options.stage), options.shader_hash);
+	if (options.dump_ir) {
+		LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " CFG BuildGraph\n", GetDumpLabel(options),
+		     StageName(options.stage), options.shader_hash);
+	}
 	auto cfg = CFG::BuildGraph(decoded);
-	LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " CFG BuildGraph blocks=%" PRIu64
-	     " loops=%" PRIu64 " back_edges=%" PRIu64 " elapsed_ms=%" PRIu64 "\n",
-	     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
-	     static_cast<uint64_t>(cfg.blocks.size()), static_cast<uint64_t>(cfg.natural_loops.size()),
-	     static_cast<uint64_t>(cfg.back_edges.size()), phase_ms());
+	if (options.dump_ir) {
+		LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " CFG BuildGraph blocks=%" PRIu64
+		     " loops=%" PRIu64 " back_edges=%" PRIu64 " elapsed_ms=%" PRIu64 "\n",
+		     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
+		     static_cast<uint64_t>(cfg.blocks.size()), static_cast<uint64_t>(cfg.natural_loops.size()),
+		     static_cast<uint64_t>(cfg.back_edges.size()), phase_ms());
+	}
 	if (cfg.irreducible) {
 		LogDispatcherFallback(options, cfg, "build");
 	} else {
-		LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " CFG Structurize\n",
-		     GetDumpLabel(options), StageName(options.stage), options.shader_hash);
+		if (options.dump_ir) {
+			LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " CFG Structurize\n",
+			     GetDumpLabel(options), StageName(options.stage), options.shader_hash);
+		}
 		if (!CFG::Structurize(cfg)) {
 			LogDispatcherFallback(options, cfg, "structurize");
 		} else {
-			LOGF("%s structured CFG success: blocks=%" PRIu64 "\n", GetDumpLabel(options),
-			     static_cast<uint64_t>(cfg.blocks.size()));
+			if (options.dump_ir) {
+				LOGF("%s structured CFG success: blocks=%" PRIu64 "\n", GetDumpLabel(options),
+				     static_cast<uint64_t>(cfg.blocks.size()));
+			}
 		}
-		LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " CFG Structurize blocks=%" PRIu64
-		     " loops=%" PRIu64 " elapsed_ms=%" PRIu64 "\n",
-		     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
-		     static_cast<uint64_t>(cfg.blocks.size()),
-		     static_cast<uint64_t>(cfg.natural_loops.size()), phase_ms());
+		if (options.dump_ir) {
+			LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " CFG Structurize blocks=%" PRIu64
+			     " loops=%" PRIu64 " elapsed_ms=%" PRIu64 "\n",
+			     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
+			     static_cast<uint64_t>(cfg.blocks.size()),
+			     static_cast<uint64_t>(cfg.natural_loops.size()), phase_ms());
+		}
 	}
 
 	Frontend::EmbeddedFetchPlan embedded_fetch;
@@ -564,8 +578,10 @@ TranslateResult TranslateProgram(std::span<const uint32_t> code, const CompileOp
 		    decoded, options.input_info.vertex, options.user_data_base,
 		    static_cast<uint32_t>(options.user_data.size()), options.wave_size);
 		if (!embedded_fetch.loads.empty()) {
-			LOGF("%s embedded vertex fetch plan: detected=%" PRIu64 "\n", GetDumpLabel(options),
-			     static_cast<uint64_t>(embedded_fetch.loads.size()));
+			if (options.dump_ir) {
+				LOGF("%s embedded vertex fetch plan: detected=%" PRIu64 "\n", GetDumpLabel(options),
+				     static_cast<uint64_t>(embedded_fetch.loads.size()));
+			}
 		}
 	}
 	Frontend::TranslateOptions translate_options {
@@ -577,13 +593,17 @@ TranslateResult TranslateProgram(std::span<const uint32_t> code, const CompileOp
 	    .input_info       = options.input_info,
 	    .embedded_fetch   = embedded_fetch.loads.empty() ? nullptr : &embedded_fetch,
 	};
-	LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " IR TranslateProgram\n",
-	     GetDumpLabel(options), StageName(options.stage), options.shader_hash);
+	if (options.dump_ir) {
+		LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " IR TranslateProgram\n",
+		     GetDumpLabel(options), StageName(options.stage), options.shader_hash);
+	}
 	auto ir = Frontend::TranslateProgram(decoded, cfg, translate_options);
-	LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " IR TranslateProgram blocks=%" PRIu64
-	     " elapsed_ms=%" PRIu64 "\n",
-	     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
-	     static_cast<uint64_t>(ir.blocks.size()), phase_ms());
+	if (options.dump_ir) {
+		LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " IR TranslateProgram blocks=%" PRIu64
+		     " elapsed_ms=%" PRIu64 "\n",
+		     GetDumpLabel(options), StageName(options.stage), options.shader_hash,
+		     static_cast<uint64_t>(ir.blocks.size()), phase_ms());
+	}
 	IR::RewriteToSsa(ir.blocks);
 	IR::ConstantPropagationPass(ir.blocks);
 	IR::ResolveControlFlowIdentities(ir);
@@ -591,8 +611,10 @@ TranslateResult TranslateProgram(std::span<const uint32_t> code, const CompileOp
 	IR::EliminateDeadCode(ir.blocks);
 	const auto read_lane_stats = IR::EliminateReadLane(ir, ir.wave_size);
 	if (read_lane_stats.rewritten_reads != 0) {
-		LOGF("%s read-lane elimination: reads=%" PRIu32 "\n", GetDumpLabel(options),
-		     read_lane_stats.rewritten_reads);
+		if (options.dump_ir) {
+			LOGF("%s read-lane elimination: reads=%" PRIu32 "\n", GetDumpLabel(options),
+			     read_lane_stats.rewritten_reads);
+		}
 		IR::ConstantPropagationPass(ir.blocks);
 		IR::ResolveControlFlowIdentities(ir);
 		IR::RemoveIdentities(ir.blocks);
@@ -631,16 +653,20 @@ CompileResult CompileProgram(TranslateResult translated, const CompileOptions& o
 		}
 	}
 
-	LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " SPIR-V EmitProgram\n",
-	     GetDumpLabel(options), StageName(ir.stage), ir.shader_hash);
+	if (options.dump_ir) {
+		LOGF("%s phase begin: stage=%s hash=0x%016" PRIx64 " SPIR-V EmitProgram\n",
+		     GetDumpLabel(options), StageName(ir.stage), ir.shader_hash);
+	}
 	auto spirv = Spirv::EmitProgram(ir, options.input_info);
-	LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " SPIR-V EmitProgram words=%" PRIu64
-	     " elapsed_ms=%" PRIu64 "\n",
-	     GetDumpLabel(options), StageName(ir.stage), ir.shader_hash,
-	     static_cast<uint64_t>(spirv.size()),
-	     static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-	                               std::chrono::steady_clock::now() - emit_begin)
-	                               .count()));
+	if (options.dump_ir) {
+		LOGF("%s phase end: stage=%s hash=0x%016" PRIx64 " SPIR-V EmitProgram words=%" PRIu64
+		     " elapsed_ms=%" PRIu64 "\n",
+		     GetDumpLabel(options), StageName(ir.stage), ir.shader_hash,
+		     static_cast<uint64_t>(spirv.size()),
+		     static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+		                               std::chrono::steady_clock::now() - emit_begin)
+		                               .count()));
+	}
 	CompileResult result;
 	result.spirv   = std::move(spirv);
 	result.program = std::move(ir);
