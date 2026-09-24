@@ -6,6 +6,8 @@
 #include "graphics/shader/recompiler/ir/ShaderIR.h"
 #include "graphics/shader/shader.h"
 
+#include <cstdlib>
+
 namespace Libs::Graphics {
 
 namespace ImageViewOps {
@@ -53,6 +55,7 @@ namespace ImageViewOps {
                                               vk::Format view_format, uint32_t swizzle) noexcept {
 	EXIT("unsupported %s color image view: image_format=%d view_format=%d swizzle=0x%03x\n", usage,
 	     static_cast<int>(image_format), static_cast<int>(view_format), swizzle);
+	std::abort();
 }
 
 [[nodiscard]] inline vk::Format SrgbStorageViewFormat(vk::Format image_format) noexcept {
