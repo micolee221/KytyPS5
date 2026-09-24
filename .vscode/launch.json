@@ -50,6 +50,51 @@
             }
         },
         {
+            "name": "Debug shader recompiler tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\_Build\\vscode-clang\\shader_recompiler_compute_tests.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\_Build\\vscode-clang",
+            "environment": [],
+            "externalConsole": true,
+            "linux": {
+                "type": "cppdbg",
+                "program": "${workspaceFolder}/_Build/linux/shader_recompiler_compute_tests",
+                "cwd": "${workspaceFolder}/_Build/linux",
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "miDebuggerPath": "/usr/bin/gdb",
+                "setupCommands": [
+                    {
+                        "description": "Pass Kyty's internal signals to its handlers",
+                        "text": "handle SIG37 SIGSEGV SIGBUS SIGILL nostop noprint pass",
+                        "ignoreFailures": false
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Debug audio out2 tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\_Build\\vscode-clang\\audio_out2_port_tests.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\_Build\\vscode-clang",
+            "environment": [],
+            "externalConsole": true,
+            "linux": {
+                "type": "cppdbg",
+                "program": "${workspaceFolder}/_Build/linux/audio_out2_port_tests",
+                "cwd": "${workspaceFolder}/_Build/linux",
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "miDebuggerPath": "/usr/bin/gdb"
+            }
+        },
+        {
             "name": "Attach to running kyty_emulator",
             "type": "cppvsdbg",
             "request": "attach",

@@ -364,7 +364,7 @@ list(APPEND check_headers
 )
 
 function(add_kyty_full_emulator_test target source)
-	add_executable(${target} EXCLUDE_FROM_ALL ${source} ${kyty_emulator_src})
+	add_executable(${target} ${source} ${kyty_emulator_src})
 	target_link_libraries(${target} ${kyty_emulator_link_libraries})
 	target_include_directories(${target} PRIVATE ${inc_headers})
 	if (WIN32)
@@ -391,7 +391,7 @@ endfunction()
 
 add_kyty_full_emulator_test(shader_cfg_tests "${KYTY_TESTS_DIR}/shaderCfgTests.cpp")
 
-add_executable(scalar_provenance_tests EXCLUDE_FROM_ALL
+add_executable(scalar_provenance_tests
 	"${KYTY_TESTS_DIR}/ScalarProvenanceTests.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/host_gpu/hostMemory.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/shader/recompiler/ir/passes/ReadLaneElimination.cpp"
@@ -400,26 +400,26 @@ add_executable(scalar_provenance_tests EXCLUDE_FROM_ALL
 target_link_libraries(scalar_provenance_tests fmt::fmt)
 target_include_directories(scalar_provenance_tests PRIVATE ${inc_headers})
 
-add_executable(page_manager_tests EXCLUDE_FROM_ALL
+add_executable(page_manager_tests
 	"${KYTY_TESTS_DIR}/PageManagerTests.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/host_gpu/pageManager.cpp"
 )
 target_link_libraries(page_manager_tests common)
 target_include_directories(page_manager_tests PRIVATE ${inc_headers})
 
-add_executable(bit_array_tests EXCLUDE_FROM_ALL
+add_executable(bit_array_tests
 	"${KYTY_TESTS_DIR}/BitArrayTests.cpp"
 )
 target_include_directories(bit_array_tests PRIVATE ${inc_headers})
 
-add_executable(ime_dialog_tests EXCLUDE_FROM_ALL
+add_executable(ime_dialog_tests
 	"${KYTY_TESTS_DIR}/ImeDialogTests.cpp"
 	"${KYTY_SOURCE_DIR}/libs/imeCommon.cpp"
 	"${KYTY_SOURCE_DIR}/libs/imeDialog.cpp"
 )
 target_include_directories(ime_dialog_tests PRIVATE ${inc_headers})
 
-add_executable(memory_tracker_tests EXCLUDE_FROM_ALL
+add_executable(memory_tracker_tests
 	"${KYTY_TESTS_DIR}/MemoryTrackerTests.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/host_gpu/pageManager.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/host_gpu/memoryTracker.cpp"
@@ -427,14 +427,14 @@ add_executable(memory_tracker_tests EXCLUDE_FROM_ALL
 target_link_libraries(memory_tracker_tests fmt::fmt common)
 target_include_directories(memory_tracker_tests PRIVATE ${inc_headers})
 
-add_executable(shader_vertex_metadata_tests EXCLUDE_FROM_ALL
+add_executable(shader_vertex_metadata_tests
 	"${KYTY_TESTS_DIR}/ShaderVertexMetadataTests.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/host_gpu/hostMemory.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/shader/shaderVertexMetadata.cpp"
 )
 target_include_directories(shader_vertex_metadata_tests PRIVATE ${inc_headers})
 
-add_executable(resource_materialization_tests EXCLUDE_FROM_ALL
+add_executable(resource_materialization_tests
 	"${KYTY_TESTS_DIR}/ResourceMaterializationTests.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/guest_gpu/gpu_format.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/host_gpu/hostMemory.cpp"
@@ -444,7 +444,7 @@ add_executable(resource_materialization_tests EXCLUDE_FROM_ALL
 target_link_libraries(resource_materialization_tests fmt::fmt)
 target_include_directories(resource_materialization_tests PRIVATE ${inc_headers})
 
-add_executable(resource_tracking_tests EXCLUDE_FROM_ALL
+add_executable(resource_tracking_tests
 	"${KYTY_TESTS_DIR}/ResourceTrackingTests.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/guest_gpu/gpu_format.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/host_gpu/hostMemory.cpp"
@@ -458,7 +458,7 @@ add_executable(resource_tracking_tests EXCLUDE_FROM_ALL
 target_link_libraries(resource_tracking_tests fmt::fmt)
 target_include_directories(resource_tracking_tests PRIVATE ${inc_headers})
 
-add_executable(audio_out2_port_tests EXCLUDE_FROM_ALL
+add_executable(audio_out2_port_tests
 	"${KYTY_TESTS_DIR}/AudioOut2PortTests.cpp"
 	"${KYTY_SOURCE_DIR}/libs/libAudio2.cpp"
 	"${KYTY_SOURCE_DIR}/loader/timer.cpp"
@@ -466,13 +466,13 @@ add_executable(audio_out2_port_tests EXCLUDE_FROM_ALL
 target_link_libraries(audio_out2_port_tests common fmt::fmt)
 target_include_directories(audio_out2_port_tests PRIVATE ${inc_headers})
 
-add_executable(save_data_memory_tests EXCLUDE_FROM_ALL
+add_executable(save_data_memory_tests
 	"${KYTY_TESTS_DIR}/SaveDataMemoryTests.cpp"
 )
 target_link_libraries(save_data_memory_tests common fmt::fmt)
 target_include_directories(save_data_memory_tests PRIVATE ${inc_headers})
 
-add_executable(event_queue_lifetime_tests EXCLUDE_FROM_ALL
+add_executable(event_queue_lifetime_tests
 	"${KYTY_TESTS_DIR}/EventQueueLifetimeTests.cpp"
 	"${KYTY_SOURCE_DIR}/kernel/eventQueue.cpp"
 	"${KYTY_SOURCE_DIR}/loader/timer.cpp"
@@ -483,14 +483,14 @@ target_include_directories(event_queue_lifetime_tests PRIVATE ${inc_headers})
 add_kyty_full_emulator_test(kernel_file_system_tests
 	"${KYTY_TESTS_DIR}/KernelFileSystemTests.cpp")
 
-add_executable(sync_on_address_tests EXCLUDE_FROM_ALL
+add_executable(sync_on_address_tests
 	"${KYTY_TESTS_DIR}/SyncOnAddressTests.cpp"
 	"${KYTY_SOURCE_DIR}/kernel/syncOnAddress.cpp"
 )
 target_link_libraries(sync_on_address_tests common)
 target_include_directories(sync_on_address_tests PRIVATE ${inc_headers})
 
-add_executable(image_page_table_tests EXCLUDE_FROM_ALL
+add_executable(image_page_table_tests
 	"${KYTY_TESTS_DIR}/ImagePageTableTests.cpp"
 )
 target_link_libraries(image_page_table_tests common fmt::fmt)
@@ -621,13 +621,14 @@ if(BUILD_TESTING)
 		shader_recompiler_compute_tests
 		virtual_memory_allocation_tests
 		audio_out2_port_tests
+		save_data_memory_tests
 	)
 endif()
 
 # Test Darwin signal-context restoration for SSE4a instructions.
 if(APPLE AND (CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64" OR
 		(NOT CMAKE_OSX_ARCHITECTURES AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")))
-	add_executable(macos_sse4a_tests EXCLUDE_FROM_ALL
+	add_executable(macos_sse4a_tests
 		"${KYTY_TESTS_DIR}/macosSse4aTests.cpp"
 		"${KYTY_SOURCE_DIR}/loader/x64InstructionEmulator.cpp"
 	)
