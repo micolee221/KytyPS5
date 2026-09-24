@@ -386,6 +386,7 @@ struct PipelineCache::ProgramCache {
 	}
 
 	explicit ProgramCache(vk::Device device): device(device) {
+		programs.reserve(2048);
 		lookup_key.static_state.reserve(MaxStaticKeyWords);
 	}
 	~ProgramCache() {
@@ -408,6 +409,8 @@ struct PipelineCache::ProgramCache {
 PipelineCache::PipelineCache(GraphicContext& graphics)
     : m_graphics(graphics), m_program_cache(std::make_unique<ProgramCache>(graphics.device)) {
 	EXIT_NOT_IMPLEMENTED(!Common::Thread::IsMainThread());
+	m_graphics_pipelines.reserve(4096);
+	m_compute_pipelines.reserve(1024);
 	InitializeDriverCache();
 	m_checkpoint_thread = std::thread([this] { CheckpointWorker(); });
 }

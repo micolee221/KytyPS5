@@ -51,6 +51,8 @@ nix develop --command bash -c '
   - Added optimizer workload metrics to shader-cache logs: successful optimizer runs, SPIR-V words saved, and validation/optimization fallbacks.
   - Added descriptor image reuse/rebind counters to measure snapshot-cache opportunities without changing PS5 resource visibility or Vulkan image-layout transitions.
   - Added `FlushAndWait` frequency and average GPU-wait telemetry without changing guest synchronization semantics.
+  - Reserved capacity for shader and pipeline lookup tables to avoid render-thread hash-table rehashes
+    as a workload discovers new permutations.
 
 ## Remaining candidates
 
@@ -62,6 +64,11 @@ nix develop --command bash -c '
 6. Descriptor binding/image snapshot cache expansion based on reuse/rebind measurements.
 7. Remove or reduce only proven `FlushAndWait` waits using the new wait-cost telemetry.
 8. AMD-specific runtime measurements on RADV/Windows driver.
+
+The current pass is continuing with low-risk render-thread overhead reductions first. The next
+measurement should compare the number and duration of first-use shader/pipeline stalls after the
+lookup-table reservation. This does not replace the larger async pipeline-prewarm design required
+to remove driver compilation stalls entirely.
 
 ## Current status
 
