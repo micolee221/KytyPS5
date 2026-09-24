@@ -53,6 +53,9 @@ nix develop --command bash -c '
   - Added `FlushAndWait` frequency and average GPU-wait telemetry without changing guest synchronization semantics.
   - Reserved capacity for shader and pipeline lookup tables to avoid render-thread hash-table rehashes
     as a workload discovers new permutations.
+  - Narrowed the pipeline-cache mutex scope so synchronous Vulkan pipeline creation does not hold the
+    cache lock; lookup and insertion remain protected while the single render-thread creation path
+    preserves pipeline ordering.
 
 ## Remaining candidates
 

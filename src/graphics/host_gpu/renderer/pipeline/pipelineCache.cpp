@@ -808,7 +808,6 @@ PipelineCache::Pipeline& PipelineCache::GetGraphicsPipeline(
 	EXIT_IF(ps_active && !pixel_program);
 	const auto color_count = static_cast<uint32_t>(colors.size());
 
-	Common::LockGuard lock(m_mutex);
 	auto&             ctx = command.GetRegisters();
 
 	const HW::ModeControl& mc = ctx.GetModeControl();
@@ -932,9 +931,12 @@ PipelineCache::Pipeline& PipelineCache::GetGraphicsPipeline(
 		EXIT_IF(attributes_num != static_cast<uint32_t>(vs_input_info.resources_num));
 	}
 
-	if (auto iter = m_graphics_pipelines.find(key); iter != m_graphics_pipelines.end()) {
-		m_graphics_pipeline_hits.fetch_add(1, std::memory_order_relaxed);
-		return *iter->second;
+	{
+		Common::LockGuard lock(m_mutex);
+		if (auto iter = m_graphics_pipelines.find(key); iter != m_graphics_pipelines.end()) {
+			m_graphics_pipeline_hits.fetch_add(1, std::memory_order_relaxed);
+			return *iter->second;
+		}
 	}
 
 	if (graphics_debug_dump_enabled()) {
@@ -971,10 +973,12 @@ PipelineCache::Pipeline& PipelineCache::GetGraphicsPipeline(
 	EXIT_NOT_IMPLEMENTED(cached->pipeline == nullptr);
 	EXIT_NOT_IMPLEMENTED(cached->pipeline_layout == nullptr);
 
-	auto [iter, inserted] = m_graphics_pipelines.emplace(std::move(key), std::move(cached));
-	EXIT_IF(!inserted);
-
-	return *iter->second;
+	{
+		Common::LockGuard lock(m_mutex);
+		auto [iter, inserted] = m_graphics_pipelines.emplace(std::move(key), std::move(cached));
+		EXIT_IF(!inserted);
+		return *iter->second;
+	}
 }
 
 PipelineCache::Pipeline&
@@ -984,12 +988,13 @@ PipelineCache::GetComputePipeline(const ShaderComputeInputInfo& input_info,
 
 	EXIT_IF(!compute_program);
 
-	Common::LockGuard lock(m_mutex);
-
-	if (auto iter = m_compute_pipelines.find(compute_program.id);
-	    iter != m_compute_pipelines.end()) {
-		m_compute_pipeline_hits.fetch_add(1, std::memory_order_relaxed);
-		return *iter->second;
+	{
+		Common::LockGuard lock(m_mutex);
+		if (auto iter = m_compute_pipelines.find(compute_program.id);
+		    iter != m_compute_pipelines.end()) {
+			m_compute_pipeline_hits.fetch_add(1, std::memory_order_relaxed);
+			return *iter->second;
+		}
 	}
 
 	if (graphics_debug_dump_enabled()) {
@@ -1017,9 +1022,11 @@ PipelineCache::GetComputePipeline(const ShaderComputeInputInfo& input_info,
 	EXIT_NOT_IMPLEMENTED(cached->pipeline == nullptr);
 	EXIT_NOT_IMPLEMENTED(cached->pipeline_layout == nullptr);
 
-	auto [iter, inserted] = m_compute_pipelines.emplace(compute_program.id, std::move(cached));
-	EXIT_IF(!inserted);
-
-	return *iter->second;
+	{
+		Common::LockGuard lock(m_mutex);
+		auto [iter, inserted] = m_compute_pipelines.emplace(compute_program.id, std::move(cached));
+		EXIT_IF(!inserted);
+		return *iter->second;
+	}
 }
 } // namespace Libs::Graphics
