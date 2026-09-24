@@ -42,16 +42,14 @@ nix develop --command bash -c '
 - Increased descriptor pool capacity from 1024 to 2048 sets.
 - Increased stream buffer from 64 MiB to 128 MiB.
 - Release GCC/Clang builds no longer force frame pointers.
-- Added asynchronous graphics pipeline prewarming while draw resources are prepared; the existing synchronous cache lookup remains the safe fallback and waits for the prewarm job.
-  - Added optional `VK_EXT_graphics_pipeline_library` capability discovery and device feature enablement.
-    - Implemented the library-backed graphics pipeline path, including a reusable pipeline library subset and final pipeline linking, while keeping the monolithic path available as the fallback for compatibility.
-      - Added bounded VideoOut pacing telemetry: every 120 present-thread samples report late-frame count, average lateness, and maximum lateness without changing vblank scheduling behavior.
-      - Added bounded `FlushAndWait` GPU-wait telemetry: every 128 waits reports the cumulative wait count and average wait duration, allowing CPU/GPU synchronization stalls to be compared with present pacing.
-      - Added visible slow-operation telemetry for shader compilation and graphics/compute pipeline creation (8 ms threshold), allowing isolated frame spikes to be correlated with a specific shader or pipeline.
-        - Integrated SPIRV-Tools performance passes for newly recompiled shaders, with safe fallback to the original module when optimization fails and a cache format bump for invalidation.
-          - Added optimizer workload metrics to shader-cache logs: successful optimizer runs, SPIR-V words saved, and validation/optimization fallbacks.
-            - Added descriptor image reuse/rebind counters to measure snapshot-cache opportunities without changing PS5 resource visibility or Vulkan image-layout transitions.
-              - Added `FlushAndWait` frequency and average GPU-wait telemetry without changing guest synchronization semantics.
+- Added slow-operation telemetry around the unavoidable synchronous graphics pipeline lookup/creation path.
+  - Added bounded VideoOut pacing telemetry: every 120 present-thread samples report late-frame count, average lateness, and maximum lateness without changing vblank scheduling behavior.
+  - Added bounded `FlushAndWait` GPU-wait telemetry: every 128 waits reports the cumulative wait count and average wait duration, allowing CPU/GPU synchronization stalls to be compared with present pacing.
+  - Added visible slow-operation telemetry for shader compilation and graphics/compute pipeline creation (8 ms threshold), allowing isolated frame spikes to be correlated with a specific shader or pipeline.
+  - Integrated SPIRV-Tools performance passes for newly recompiled shaders, with safe fallback to the original module when optimization fails and a cache format bump for invalidation.
+  - Added optimizer workload metrics to shader-cache logs: successful optimizer runs, SPIR-V words saved, and validation/optimization fallbacks.
+  - Added descriptor image reuse/rebind counters to measure snapshot-cache opportunities without changing PS5 resource visibility or Vulkan image-layout transitions.
+  - Added `FlushAndWait` frequency and average GPU-wait telemetry without changing guest synchronization semantics.
 
 ## Remaining candidates
 
@@ -68,7 +66,7 @@ nix develop --command bash -c '
 
 `glslangValidator` is installed, CMake configures successfully, and the earlier Vulkan-Hpp compatibility breakage in the renderer/presentation stack has been fixed by replacing implicit brace assignments with explicit `vk::Extent*`/`vk::Offset*` constructors and by normalizing the mixed 2D/3D extent comparisons. The audio-side union default-construction issue was also fixed for the current compiler toolchain.
 
-The graphics pipeline library work is now implemented in the host Vulkan path and the pipeline cache distinguishes the library-backed path from the classic monolithic one. The remaining high-value work is now runtime validation and the next emulator-specific performance tuning items: async compute queue separation, swapchain direct rendering, and present/vblank pacing.
+The host Vulkan path still uses monolithic graphics pipeline creation. A graphics-pipeline-library implementation remains future architecture work; the current slow-operation telemetry confirms that first-use `vkCreateGraphicsPipelines` calls can block the render thread for hundreds of milliseconds.
 
 The first two candidates have an important host-architecture constraint. Device selection currently requires one queue family that supports graphics, compute, and presentation, and the command scheduler submits all guest work through that queue. Splitting async compute therefore requires a second scheduler plus explicit Vulkan semaphore and resource-ownership tracking; enabling another queue opportunistically would be unsafe for PS5 guest ordering. Direct swapchain rendering is also not a drop-in replacement: guest video-out images are produced before swapchain acquisition, then the presentation path applies format/extent conversion and an optional system overlay. The current copy/blit path is consequently retained until those ownership and presentation contracts are redesigned.
 
@@ -76,7 +74,7 @@ The first low-risk present/vblank measurement is now implemented in the VideoOut
 
 ## Remaining work and completion estimate
 
-The low-risk infrastructure work is essentially done: persistent shader caches, telemetry, optimizer integration, pipeline library path, and the present-thread pacing instrumentation are all in place. The remaining work is focused validation and architecture-sensitive tuning rather than basic compile fixes.
+The low-risk infrastructure work is essentially done: persistent shader caches, telemetry, optimizer integration, and present-thread pacing instrumentation are in place. A real graphics-pipeline-library or asynchronous pipeline-prewarm path remains architecture-sensitive work rather than a completed feature.
 
 At this point, roughly 60-70% of the shader-performance task package is complete. The remaining 30-40% is concentrated in:
 
