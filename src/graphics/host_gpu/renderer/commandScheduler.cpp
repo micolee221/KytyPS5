@@ -191,8 +191,9 @@ void CommandScheduler::FlushAndWait() {
 	const auto total_wait_ns = m_flush_wait_ns.fetch_add(wait_ns, std::memory_order_relaxed) +
 	                           wait_ns;
 	if ((wait_count & 127u) == 0) {
-		LOGF("Command scheduler: flush_waits=%" PRIu64 " avg_flush_wait_ms=%.3f\n", wait_count,
-		     static_cast<double>(total_wait_ns) / static_cast<double>(wait_count) / 1000000.0);
+		Log::WriteToConsoleAndLog(fmt::sprintf(
+		    "Command scheduler: flush_waits=%" PRIu64 " avg_flush_wait_ms=%.3f\n", wait_count,
+		    static_cast<double>(total_wait_ns) / static_cast<double>(wait_count) / 1000000.0));
 	}
 }
 

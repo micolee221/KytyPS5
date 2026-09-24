@@ -815,11 +815,12 @@ void VideoOutDriver::Impl::PresentThread(std::stop_token token) {
 			const auto to_ms = [frequency](uint64_t ticks) {
 				return static_cast<double>(ticks) * 1000.0 / static_cast<double>(frequency);
 			};
-			LOGF("VideoOut pacing: frames=%" PRIu64 " late=%" PRIu64
-			     " avg_late_ms=%.3f max_late_ms=%.3f\n",
-			     frame_count, late_frame_count,
-			     late_frame_count == 0 ? 0.0 : to_ms(total_lateness) / late_frame_count,
-			     to_ms(max_lateness));
+			Log::WriteToConsoleAndLog(fmt::sprintf(
+			    "VideoOut pacing: frames=%" PRIu64 " late=%" PRIu64
+			    " avg_late_ms=%.3f max_late_ms=%.3f\n",
+			    frame_count, late_frame_count,
+			    late_frame_count == 0 ? 0.0 : to_ms(total_lateness) / late_frame_count,
+			    to_ms(max_lateness)));
 			late_frame_count = 0;
 			total_lateness = 0;
 			max_lateness = 0;
