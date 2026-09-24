@@ -361,6 +361,11 @@ struct PipelineCache::ProgramCache {
 		                            std::chrono::steady_clock::now() - compile_start)
 		                            .count();
 		const auto compile_count = compile_misses.fetch_add(1, std::memory_order_relaxed) + 1;
+		if (compile_ms >= 8) {
+			Log::WriteToConsoleAndLog(fmt::sprintf(
+			    "Shader compile stall: stage=%u hash=0x%016" PRIx64 " compile_ms=%" PRId64 "\n",
+			    static_cast<uint32_t>(stage), params.hash, compile_ms));
+		}
 		if ((compile_count & 31u) == 0) {
 			LOGF("Shader cache: hits=%" PRIu64 " compile_misses=%" PRIu64
 			     " last_compile_ms=%" PRId64 "\n",
@@ -941,6 +946,11 @@ PipelineCache::Pipeline& PipelineCache::GetGraphicsPipeline(
 	                          std::chrono::steady_clock::now() - create_start)
 	                          .count();
 	const auto create_count = m_graphics_pipeline_misses.fetch_add(1, std::memory_order_relaxed) + 1;
+	if (create_ms >= 8) {
+		Log::WriteToConsoleAndLog(fmt::sprintf(
+		    "Graphics pipeline stall: VS=%" PRIu64 " PS=%" PRIu64 " create_ms=%" PRId64 "\n",
+		    vs_id, ps_id, create_ms));
+	}
 	if ((create_count & 31u) == 0) {
 		LOGF("Graphics pipeline cache: hits=%" PRIu64 " misses=%" PRIu64
 		     " last_create_ms=%" PRId64 "\n",
@@ -982,6 +992,11 @@ PipelineCache::GetComputePipeline(const ShaderComputeInputInfo& input_info,
 	                          std::chrono::steady_clock::now() - create_start)
 	                          .count();
 	const auto create_count = m_compute_pipeline_misses.fetch_add(1, std::memory_order_relaxed) + 1;
+	if (create_ms >= 8) {
+		Log::WriteToConsoleAndLog(fmt::sprintf(
+		    "Compute pipeline stall: shader=%" PRIu64 " create_ms=%" PRId64 "\n",
+		    compute_program.id, create_ms));
+	}
 	if ((create_count & 31u) == 0) {
 		LOGF("Compute pipeline cache: hits=%" PRIu64 " misses=%" PRIu64
 		     " last_create_ms=%" PRId64 "\n",

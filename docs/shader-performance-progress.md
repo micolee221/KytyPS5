@@ -47,6 +47,7 @@ nix develop --command bash -c '
     - Implemented the library-backed graphics pipeline path, including a reusable pipeline library subset and final pipeline linking, while keeping the monolithic path available as the fallback for compatibility.
       - Added bounded VideoOut pacing telemetry: every 120 present-thread samples report late-frame count, average lateness, and maximum lateness without changing vblank scheduling behavior.
       - Added bounded `FlushAndWait` GPU-wait telemetry: every 128 waits reports the cumulative wait count and average wait duration, allowing CPU/GPU synchronization stalls to be compared with present pacing.
+      - Added visible slow-operation telemetry for shader compilation and graphics/compute pipeline creation (8 ms threshold), allowing isolated frame spikes to be correlated with a specific shader or pipeline.
         - Integrated SPIRV-Tools performance passes for newly recompiled shaders, with safe fallback to the original module when optimization fails and a cache format bump for invalidation.
           - Added optimizer workload metrics to shader-cache logs: successful optimizer runs, SPIR-V words saved, and validation/optimization fallbacks.
             - Added descriptor image reuse/rebind counters to measure snapshot-cache opportunities without changing PS5 resource visibility or Vulkan image-layout transitions.
