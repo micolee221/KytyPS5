@@ -537,6 +537,13 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 	pipeline_info.pDynamicState           = &dynamic_state;
 	pipeline_info.layout                  = pipeline.pipeline_layout;
 	pipeline_info.basePipelineIndex       = -1;
+	vk::PipelineCreationFeedback feedback {};
+	vk::PipelineCreationFeedbackCreateInfo feedback_info {};
+	if (graphics.pipeline_creation_feedback_enabled) {
+		feedback_info.pNext                      = pipeline_info.pNext;
+		feedback_info.pPipelineCreationFeedback = &feedback;
+		pipeline_info.pNext                     = &feedback_info;
+	}
 
 	EXIT_IF(pipeline.pipeline != nullptr);
 
@@ -554,6 +561,11 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 	if (graphics_debug_dump_enabled()) {
 		LOGF("PipelineTrace: vkCreateGraphicsPipelines done result=%s pipeline=%p\n",
 		     vk::to_string(result).c_str(), static_cast<void*>(pipeline.pipeline));
+	}
+	if (graphics.pipeline_creation_feedback_enabled && feedback.flags &&
+	    feedback.flags != vk::PipelineCreationFeedbackFlagBits::eApplicationPipelineCacheHit) {
+		LOGF("Pipeline feedback: flags=%s duration_ns=%" PRIu64 "\n",
+		     vk::to_string(feedback.flags).c_str(), feedback.duration);
 	}
 	EXIT_NOT_IMPLEMENTED(result != vk::Result::eSuccess);
 
@@ -615,6 +627,12 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 	info.stage             = comp_shader_stage_info;
 	info.layout            = pipeline.pipeline_layout;
 	info.basePipelineIndex = -1;
+	vk::PipelineCreationFeedback feedback {};
+	vk::PipelineCreationFeedbackCreateInfo feedback_info {};
+	if (graphics.pipeline_creation_feedback_enabled) {
+		feedback_info.pPipelineCreationFeedback = &feedback;
+		info.pNext                               = &feedback_info;
+	}
 
 	EXIT_IF(pipeline.pipeline != nullptr);
 
@@ -625,6 +643,11 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 	LOGF("PipelineTrace: vkCreateComputePipelines done result=%s pipeline=%p\n",
 	     vk::to_string(result).c_str(), static_cast<void*>(pipeline.pipeline));
 	EXIT_NOT_IMPLEMENTED(result != vk::Result::eSuccess);
+	if (graphics.pipeline_creation_feedback_enabled && feedback.flags &&
+	    feedback.flags != vk::PipelineCreationFeedbackFlagBits::eApplicationPipelineCacheHit) {
+		LOGF("Compute pipeline feedback: flags=%s duration_ns=%" PRIu64 "\n",
+		     vk::to_string(feedback.flags).c_str(), feedback.duration);
+	}
 
 	EXIT_NOT_IMPLEMENTED(pipeline.pipeline == nullptr);
 }

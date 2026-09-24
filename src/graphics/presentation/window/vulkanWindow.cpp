@@ -544,6 +544,8 @@ static vk::Device VulkanCreateDevice(GraphicContext& graphics,
 	}
 
 	const bool mesh_extension = HasExtension(device_extensions, VK_EXT_MESH_SHADER_EXTENSION_NAME);
+	graphics.pipeline_creation_feedback_enabled =
+	    HasExtension(device_extensions, VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME);
 	vk::PhysicalDeviceMeshShaderFeaturesEXT supported_mesh {};
 	supported_mesh.pNext = &supported_features13;
 	vk::PhysicalDeviceFeatures2 supported_features2 {};
@@ -1066,6 +1068,9 @@ void WindowContext::CreateVulkan() {
 
 		if (HasExtension(available_extensions, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)) {
 			device_extensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+		}
+		if (HasExtension(available_extensions, VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME)) {
+			device_extensions.push_back(VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME);
 			graphic_ctx.memory_budget_ext_enabled = true;
 		}
 		for (const auto* extension: {VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
