@@ -56,6 +56,9 @@ nix develop --command bash -c '
   - Narrowed the pipeline-cache mutex scope so synchronous Vulkan pipeline creation does not hold the
     cache lock; lookup and insertion remain protected while the single render-thread creation path
     preserves pipeline ordering.
+- Removed the same cache lock around synchronous shader translation and shader-module creation;
+    graphics and compute shader refresh are render-thread-only, so the long compiler path no longer
+    holds an unrelated pipeline-cache mutex.
 
 ## Remaining candidates
 
