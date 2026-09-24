@@ -219,8 +219,12 @@ struct PipelineCache::ProgramCache {
 			PipelineKeyHash::Mix(hash, key.user_data_count);
 			PipelineKeyHash::Mix(hash, key.code_size);
 			PipelineKeyHash::Mix(hash, key.static_state.size());
-			// Bucket same-shape static variants by source. ProgramKey equality performs the one
-			// exact state comparison needed on a stable hit without hashing up to 429 words first.
+			if (!key.static_state.empty()) {
+				PipelineKeyHash::Mix(
+				    hash, static_cast<std::size_t>(XXH3_64bits(
+				              key.static_state.data(),
+				              key.static_state.size() * sizeof(key.static_state.front()))));
+			}
 			return hash;
 		}
 	};
