@@ -205,7 +205,6 @@ void CommandScheduler::Finish() {
 	m_master.Wait(CurrentTick() - 1);
 	BeginNext();
 	PopPendingOperations();
-	m_context.GetPipelineCache().CheckpointIfNeeded();
 }
 
 void CommandScheduler::Wait(uint64_t tick) {

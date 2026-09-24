@@ -28,7 +28,7 @@ nix develop --command bash -c '
 
 ## Completed
 
-- Removed runtime Vulkan pipeline cache checkpoints; cache saves on shutdown only.
+- Removed runtime Vulkan pipeline cache checkpoints; cache saves on shutdown only. The scheduler no longer captures pipeline-cache data at frame/command-buffer boundaries, avoiding driver-side cache capture stalls during gameplay.
 - Reused Vulkan pipeline cache across emulator revisions when device/driver/cache UUID match.
 - Added persistent SPIR-V cache under `_ShaderCache/<TITLE_ID>/<revision>/`.
 - SPIR-V cache keys include stage, shader hash, static state, specialization, push layout, wave size, user-data base, and back shader code.
