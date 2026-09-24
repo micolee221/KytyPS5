@@ -787,6 +787,10 @@ void VideoOutDriver::Impl::PresentThread(std::stop_token token) {
 	EXIT_IF(frequency == 0);
 
 	int64_t total_wait = 0;
+	uint64_t frame_count = 0;
+	uint64_t late_frame_count = 0;
+	uint64_t total_lateness = 0;
+	uint64_t max_lateness = 0;
 	while (!token.stop_requested()) {
 		const auto sleep_begin = Common::Timer::QueryPerformanceCounter();
 		if (total_wait > 0) {
@@ -800,6 +804,26 @@ void VideoOutDriver::Impl::PresentThread(std::stop_token token) {
 		}
 		const auto frame_begin = Common::Timer::QueryPerformanceCounter();
 		total_wait -= static_cast<int64_t>(frame_begin - sleep_begin);
+		if (total_wait < 0) {
+			late_frame_count++;
+			const auto lateness = static_cast<uint64_t>(-total_wait);
+			total_lateness += lateness;
+			max_lateness = std::max(max_lateness, lateness);
+		}
+		frame_count++;
+		if ((frame_count % 120) == 0) {
+			const auto to_ms = [frequency](uint64_t ticks) {
+				return static_cast<double>(ticks) * 1000.0 / static_cast<double>(frequency);
+			};
+			LOGF("VideoOut pacing: frames=%" PRIu64 " late=%" PRIu64
+			     " avg_late_ms=%.3f max_late_ms=%.3f\n",
+			     frame_count, late_frame_count,
+			     late_frame_count == 0 ? 0.0 : to_ms(total_lateness) / late_frame_count,
+			     to_ms(max_lateness));
+			late_frame_count = 0;
+			total_lateness = 0;
+			max_lateness = 0;
+		}
 
 		const auto refresh = std::max(Config::GetVblankFrequency(), 1u);
 		const auto period  = std::max(frequency / refresh, uint64_t {1});

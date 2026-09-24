@@ -7,6 +7,7 @@
 #include "graphics/host_gpu/renderer/renderContext.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <optional>
 
@@ -179,8 +180,20 @@ void CommandScheduler::Flush(SubmitInfo& submit) {
 
 void CommandScheduler::FlushAndWait() {
 	const auto tick = Submit();
+	const auto wait_begin = std::chrono::steady_clock::now();
 	m_master.Wait(tick);
+	const auto wait_ns = static_cast<uint64_t>(
+	    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() -
+	                                                         wait_begin)
+	        .count());
 	BeginNext();
+	const auto wait_count = m_flush_wait_count.fetch_add(1, std::memory_order_relaxed) + 1;
+	const auto total_wait_ns = m_flush_wait_ns.fetch_add(wait_ns, std::memory_order_relaxed) +
+	                           wait_ns;
+	if ((wait_count & 127u) == 0) {
+		LOGF("Command scheduler: flush_waits=%" PRIu64 " avg_flush_wait_ms=%.3f\n", wait_count,
+		     static_cast<double>(total_wait_ns) / static_cast<double>(wait_count) / 1000000.0);
+	}
 }
 
 void CommandScheduler::Finish() {

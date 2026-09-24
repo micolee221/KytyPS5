@@ -100,6 +100,8 @@ private:
 	OperationState               m_operation_state      = OperationState::Open;
 	std::atomic<uint64_t>        m_submit_count {0};
 	std::atomic<uint64_t>        m_wait_count {0};
+	std::atomic<uint64_t>        m_flush_wait_count {0};
+	std::atomic<uint64_t>        m_flush_wait_ns {0};
 };
 
 } // namespace Libs::Graphics
