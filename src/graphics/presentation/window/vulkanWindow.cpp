@@ -534,6 +534,7 @@ static vk::Device VulkanCreateDevice(GraphicContext& graphics,
 	features12.pNext = &depth_clip_control;
 
 	vk::PhysicalDeviceVulkan13Features supported_features13 {};
+	vk::PhysicalDeviceGraphicsPipelineLibraryFeaturesEXT supported_graphics_pipeline_library {};
 
 	const auto robustness2_ext_enabled =
 	    HasExtension(device_extensions, VK_EXT_ROBUSTNESS_2_EXTENSION_NAME);
@@ -549,6 +550,13 @@ static vk::Device VulkanCreateDevice(GraphicContext& graphics,
 	vk::PhysicalDeviceFeatures2 supported_features2 {};
 	supported_features2.pNext = mesh_extension ? static_cast<void*>(&supported_mesh)
 	                                           : static_cast<void*>(&supported_features13);
+	const bool graphics_pipeline_library_extension =
+	    HasExtension(device_extensions, VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME) &&
+	    HasExtension(device_extensions, VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
+	if (graphics_pipeline_library_extension) {
+		supported_graphics_pipeline_library.pNext = supported_features2.pNext;
+		supported_features2.pNext = &supported_graphics_pipeline_library;
+	}
 	const bool feedback_layout_extension =
 	    HasExtension(device_extensions, VK_EXT_ATTACHMENT_FEEDBACK_LOOP_LAYOUT_EXTENSION_NAME);
 	const bool feedback_dynamic_extension =
@@ -572,6 +580,11 @@ static vk::Device VulkanCreateDevice(GraphicContext& graphics,
 	}
 	physical_device.getFeatures2(&supported_features2);
 	graphics.mesh_shader_enabled = mesh_extension && supported_mesh.meshShader;
+	graphics.graphics_pipeline_library_enabled =
+	    graphics_pipeline_library_extension &&
+	    supported_graphics_pipeline_library.graphicsPipelineLibrary == VK_TRUE;
+	LOGF("Vulkan graphics pipeline library: %s\n",
+	     graphics.graphics_pipeline_library_enabled ? "enabled" : "monolithic fallback");
 
 	vk::PhysicalDeviceSubgroupSizeControlProperties subgroup_size_control {};
 
@@ -670,6 +683,11 @@ static vk::Device VulkanCreateDevice(GraphicContext& graphics,
 	features13.robustImageAccess   = supported_features13.robustImageAccess;
 	features13.subgroupSizeControl =
 	    graphics.compute_subgroup_size_control_enabled ? VK_TRUE : VK_FALSE;
+	if (graphics.graphics_pipeline_library_enabled) {
+		supported_graphics_pipeline_library.graphicsPipelineLibrary = VK_TRUE;
+		supported_graphics_pipeline_library.pNext = features13.pNext;
+		features13.pNext = &supported_graphics_pipeline_library;
+	}
 
 	LOGF("Vulkan robustness: robustImageAccess=%s robustImageAccess2=%s\n",
 	     features13.robustImageAccess == VK_TRUE ? "true" : "false",
@@ -1067,6 +1085,11 @@ void WindowContext::CreateVulkan() {
 		if (HasExtension(available_extensions, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)) {
 			device_extensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
 			graphic_ctx.memory_budget_ext_enabled = true;
+		}
+		if (HasExtension(available_extensions, VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME) &&
+		    HasExtension(available_extensions, VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME)) {
+			device_extensions.push_back(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
+			device_extensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
 		}
 		for (const auto* extension: {VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
 		                             VK_EXT_PROVOKING_VERTEX_EXTENSION_NAME,

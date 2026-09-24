@@ -549,8 +549,59 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 		     (with_depth ? "true" : "false"), (static_params.blend_enable[0] ? "true" : "false"),
 		     dynamic_state.dynamicStateCount);
 	}
-	result = graphics.device.createGraphicsPipelines(driver_cache, 1, &pipeline_info, nullptr,
-	                                                 &pipeline.pipeline);
+	bool used_pipeline_library = false;
+	if (graphics.graphics_pipeline_library_enabled) {
+		// Build one complete GPL library and link it immediately.  Keeping the library
+		// lifetime local makes this an opt-in optimization without changing cache ownership.
+		vk::GraphicsPipelineLibraryCreateInfoEXT library_info {};
+		library_info.flags = vk::GraphicsPipelineLibraryFlagBitsEXT::eVertexInputInterface |
+		                     vk::GraphicsPipelineLibraryFlagBitsEXT::ePreRasterizationShaders |
+		                     vk::GraphicsPipelineLibraryFlagBitsEXT::eFragmentShader |
+		                     vk::GraphicsPipelineLibraryFlagBitsEXT::eFragmentOutputInterface;
+		library_info.pNext = pipeline_info.pNext;
+		vk::GraphicsPipelineCreateInfo library_pipeline_info = pipeline_info;
+		library_pipeline_info.flags |= vk::PipelineCreateFlagBits::eLibraryKHR;
+		library_pipeline_info.pNext = &library_info;
+
+		vk::Pipeline library = nullptr;
+		result = graphics.device.createGraphicsPipelines(driver_cache, 1, &library_pipeline_info,
+		                                                 nullptr, &library);
+		if (result == vk::Result::eSuccess && library != nullptr) {
+			vk::PipelineLibraryCreateInfoKHR libraries {};
+			libraries.libraryCount = 1;
+			libraries.pLibraries   = &library;
+			vk::GraphicsPipelineCreateInfo linked_pipeline_info = pipeline_info;
+			linked_pipeline_info.flags &= ~vk::PipelineCreateFlagBits::eLibraryKHR;
+			linked_pipeline_info.pNext           = &libraries;
+			linked_pipeline_info.stageCount      = 0;
+			linked_pipeline_info.pStages         = nullptr;
+			linked_pipeline_info.pVertexInputState = nullptr;
+			linked_pipeline_info.pInputAssemblyState = nullptr;
+			linked_pipeline_info.pTessellationState = nullptr;
+			linked_pipeline_info.pViewportState = nullptr;
+			linked_pipeline_info.pRasterizationState = nullptr;
+			linked_pipeline_info.pMultisampleState = nullptr;
+			linked_pipeline_info.pDepthStencilState = nullptr;
+			linked_pipeline_info.pColorBlendState = nullptr;
+			linked_pipeline_info.pDynamicState = nullptr;
+			result = graphics.device.createGraphicsPipelines(driver_cache, 1, &linked_pipeline_info,
+			                                                 nullptr, &pipeline.pipeline);
+			if (result == vk::Result::eSuccess && pipeline.pipeline != nullptr) {
+				used_pipeline_library = true;
+			}
+			graphics.device.destroyPipeline(library, nullptr);
+		}
+		if (!used_pipeline_library) {
+			// Some drivers expose the extension but reject a complete library for a
+			// particular pipeline (notably older portability implementations).
+			pipeline.pipeline = nullptr;
+			result = graphics.device.createGraphicsPipelines(driver_cache, 1, &pipeline_info,
+			                                                 nullptr, &pipeline.pipeline);
+		}
+	} else {
+		result = graphics.device.createGraphicsPipelines(driver_cache, 1, &pipeline_info, nullptr,
+		                                                 &pipeline.pipeline);
+	}
 	if (graphics_debug_dump_enabled()) {
 		LOGF("PipelineTrace: vkCreateGraphicsPipelines done result=%s pipeline=%p\n",
 		     vk::to_string(result).c_str(), static_cast<void*>(pipeline.pipeline));
