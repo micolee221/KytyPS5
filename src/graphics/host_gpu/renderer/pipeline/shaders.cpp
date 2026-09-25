@@ -589,7 +589,8 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& pipeline,
                             const ShaderComputeInputInfo& input_info,
-                            vk::ShaderModule compute_module, vk::PipelineCache driver_cache) {
+                            vk::ShaderModule compute_module, uint64_t compute_shader_id,
+                            vk::PipelineCache driver_cache) {
 	EXIT_IF(compute_module == nullptr);
 
 	vk::PipelineShaderStageCreateInfo                     comp_shader_stage_info {};
@@ -658,7 +659,7 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 		Log::WriteToConsoleAndLog(fmt::sprintf(
 		    "Compute pipeline feedback: shader=%" PRIu64
 		    " application_cache_hit=%s flags=%s duration_ns=%" PRIu64 "\n",
-		    input_info.stage.program->id, application_cache_hit ? "true" : "false",
+		    compute_shader_id, application_cache_hit ? "true" : "false",
 		    vk::to_string(feedback.flags).c_str(), feedback.duration));
 	}
 

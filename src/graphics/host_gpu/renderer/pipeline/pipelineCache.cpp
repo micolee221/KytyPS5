@@ -1023,7 +1023,8 @@ PipelineCache::GetComputePipeline(const ShaderComputeInputInfo& input_info,
 	Common::LockGuard lock(m_mutex);
 	auto cached = std::make_unique<Pipeline>();
 	const auto create_start = std::chrono::steady_clock::now();
-	CreatePipelineInternal(m_graphics, *cached, input_info, compute_program.module, m_driver_cache);
+	CreatePipelineInternal(m_graphics, *cached, input_info, compute_program.module,
+	                       compute_program.id, m_driver_cache);
 	const auto create_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
 	                          std::chrono::steady_clock::now() - create_start)
 	                          .count();
