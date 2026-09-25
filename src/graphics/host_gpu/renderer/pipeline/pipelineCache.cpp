@@ -356,14 +356,21 @@ struct PipelineCache::ProgramCache {
 		}
 		const auto compile_start = std::chrono::steady_clock::now();
 		auto       translated    = ShaderRecompiler::TranslateProgram(params.code, options);
+		const auto translate_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+		                              std::chrono::steady_clock::now() - compile_start)
+		                              .count();
 		if (entry == programs.end()) {
 			auto resource_plan = ShaderRecompiler::IR::ExtractResourcePlan(translated.program);
 			EXIT_IF(!ShaderRecompiler::IR::MaterializeResources(resource_plan, runtime, resources,
 			                                                    specialization));
 			entry = programs.try_emplace(lookup_key, std::move(resource_plan)).first;
 		}
+		const auto backend_start = std::chrono::steady_clock::now();
 		entry->second.permutations.push_back(CompilePermutation(
 		    params, options, std::move(translated), std::move(specialization), push_data_cursor));
+		const auto backend_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+		                            std::chrono::steady_clock::now() - backend_start)
+		                            .count();
 		const auto& permutation = entry->second.permutations.back();
 		const auto compile_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
 		                            std::chrono::steady_clock::now() - compile_start)
@@ -371,8 +378,9 @@ struct PipelineCache::ProgramCache {
 		const auto compile_count = compile_misses.fetch_add(1, std::memory_order_relaxed) + 1;
 		if (compile_ms >= 8) {
 			Log::WriteToConsoleAndLog(fmt::sprintf(
-			    "Shader compile stall: stage=%u hash=0x%016" PRIx64 " compile_ms=%" PRId64 "\n",
-			    static_cast<uint32_t>(stage), params.hash, compile_ms));
+			    "Shader compile stall: stage=%u hash=0x%016" PRIx64
+			    " compile_ms=%" PRId64 " translate_ms=%" PRId64 " backend_ms=%" PRId64 "\n",
+			    static_cast<uint32_t>(stage), params.hash, compile_ms, translate_ms, backend_ms));
 		}
 		if ((compile_count & 31u) == 0) {
 			LOGF("Shader cache: hits=%" PRIu64 " compile_misses=%" PRIu64
@@ -947,6 +955,7 @@ PipelineCache::Pipeline& PipelineCache::GetGraphicsPipeline(
 		     static_cast<void*>(pixel_program.module));
 	}
 
+	Common::LockGuard lock(m_mutex);
 	auto cached = std::make_unique<Pipeline>();
 	const auto create_start = std::chrono::steady_clock::now();
 	LogPipelineTrace("CreatePipelineInternal begin", vs_id, ps_id);
@@ -971,12 +980,9 @@ PipelineCache::Pipeline& PipelineCache::GetGraphicsPipeline(
 	EXIT_NOT_IMPLEMENTED(cached->pipeline == nullptr);
 	EXIT_NOT_IMPLEMENTED(cached->pipeline_layout == nullptr);
 
-	{
-		Common::LockGuard lock(m_mutex);
-		auto [iter, inserted] = m_graphics_pipelines.emplace(std::move(key), std::move(cached));
-		EXIT_IF(!inserted);
-		return *iter->second;
-	}
+	auto [iter, inserted] = m_graphics_pipelines.emplace(std::move(key), std::move(cached));
+	EXIT_IF(!inserted);
+	return *iter->second;
 }
 
 PipelineCache::Pipeline&
@@ -999,6 +1005,7 @@ PipelineCache::GetComputePipeline(const ShaderComputeInputInfo& input_info,
 		ShaderDbgDumpInputInfo(input_info);
 	}
 
+	Common::LockGuard lock(m_mutex);
 	auto cached = std::make_unique<Pipeline>();
 	const auto create_start = std::chrono::steady_clock::now();
 	CreatePipelineInternal(m_graphics, *cached, input_info, compute_program.module, m_driver_cache);
@@ -1020,11 +1027,8 @@ PipelineCache::GetComputePipeline(const ShaderComputeInputInfo& input_info,
 	EXIT_NOT_IMPLEMENTED(cached->pipeline == nullptr);
 	EXIT_NOT_IMPLEMENTED(cached->pipeline_layout == nullptr);
 
-	{
-		Common::LockGuard lock(m_mutex);
-		auto [iter, inserted] = m_compute_pipelines.emplace(compute_program.id, std::move(cached));
-		EXIT_IF(!inserted);
-		return *iter->second;
-	}
+	auto [iter, inserted] = m_compute_pipelines.emplace(compute_program.id, std::move(cached));
+	EXIT_IF(!inserted);
+	return *iter->second;
 }
 } // namespace Libs::Graphics
