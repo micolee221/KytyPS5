@@ -34,6 +34,7 @@ nix develop --command bash -c '
 - Shader program and permutation caches are currently in-memory only; no persistent SPIR-V disk cache is implemented.
 - Shader compile stall logs include `translate_ms`, `backend_ms`, and whether the miss was a new source shader or a new specialization/permutation.
 - Every 32 shader compilations, console/log output reports session cache hits, source misses, permutation misses, and total compile misses.
+- Slow Vulkan pipeline feedback logs include shader IDs and whether the application-provided Vulkan pipeline cache reported a hit.
 - Reduced shader recompiler logging in silent mode.
 - Disabled shader validation by default in launcher configuration.
 - Release builds no longer compile Vulkan debug printf code.

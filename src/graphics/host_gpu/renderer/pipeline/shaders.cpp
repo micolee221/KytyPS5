@@ -564,9 +564,15 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 	}
 	if (graphics.pipeline_creation_feedback_enabled && feedback.flags &&
 	    feedback.duration >= 8'000'000) {
+		const bool application_cache_hit =
+		    static_cast<bool>(feedback.flags &
+		                      vk::PipelineCreationFeedbackFlagBits::eApplicationPipelineCacheHit);
 		Log::WriteToConsoleAndLog(fmt::sprintf(
-		    "Pipeline feedback: flags=%s duration_ns=%" PRIu64 "\n",
-		    vk::to_string(feedback.flags).c_str(), feedback.duration));
+		    "Pipeline feedback: VS=%" PRIu64 " PS=%" PRIu64
+		    " application_cache_hit=%s flags=%s duration_ns=%" PRIu64 "\n",
+		    vertex_program.id, ps_active ? pixel_program.id : 0,
+		    application_cache_hit ? "true" : "false", vk::to_string(feedback.flags).c_str(),
+		    feedback.duration));
 	}
 	EXIT_NOT_IMPLEMENTED(result != vk::Result::eSuccess);
 
@@ -646,8 +652,13 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
 	EXIT_NOT_IMPLEMENTED(result != vk::Result::eSuccess);
 	if (graphics.pipeline_creation_feedback_enabled && feedback.flags &&
 	    feedback.duration >= 8'000'000) {
+		const bool application_cache_hit =
+		    static_cast<bool>(feedback.flags &
+		                      vk::PipelineCreationFeedbackFlagBits::eApplicationPipelineCacheHit);
 		Log::WriteToConsoleAndLog(fmt::sprintf(
-		    "Compute pipeline feedback: flags=%s duration_ns=%" PRIu64 "\n",
+		    "Compute pipeline feedback: shader=%" PRIu64
+		    " application_cache_hit=%s flags=%s duration_ns=%" PRIu64 "\n",
+		    input_info.stage.program->id, application_cache_hit ? "true" : "false",
 		    vk::to_string(feedback.flags).c_str(), feedback.duration));
 	}
 
