@@ -316,6 +316,7 @@ struct PipelineCache::ProgramCache {
 			}
 		}
 
+		const bool source_cache_miss = entry == programs.end();
 		ShaderStageInputInfo stage_input {};
 		if constexpr (std::is_same_v<InputInfo, ShaderVertexInputInfo>) {
 			stage_input.vertex = &input_info;
@@ -376,16 +377,28 @@ struct PipelineCache::ProgramCache {
 		                            std::chrono::steady_clock::now() - compile_start)
 		                            .count();
 		const auto compile_count = compile_misses.fetch_add(1, std::memory_order_relaxed) + 1;
+		if (source_cache_miss) {
+			source_misses.fetch_add(1, std::memory_order_relaxed);
+		} else {
+			permutation_misses.fetch_add(1, std::memory_order_relaxed);
+		}
 		if (compile_ms >= 8) {
 			Log::WriteToConsoleAndLog(fmt::sprintf(
 			    "Shader compile stall: stage=%u hash=0x%016" PRIx64
-			    " compile_ms=%" PRId64 " translate_ms=%" PRId64 " backend_ms=%" PRId64 "\n",
-			    static_cast<uint32_t>(stage), params.hash, compile_ms, translate_ms, backend_ms));
+			    " cache_miss=%s compile_ms=%" PRId64 " translate_ms=%" PRId64
+			    " backend_ms=%" PRId64 "\n",
+			    static_cast<uint32_t>(stage), params.hash,
+			    source_cache_miss ? "source" : "permutation", compile_ms, translate_ms,
+			    backend_ms));
 		}
 		if ((compile_count & 31u) == 0) {
-			LOGF("Shader cache: hits=%" PRIu64 " compile_misses=%" PRIu64
-			     " last_compile_ms=%" PRId64 "\n",
-			     program_hits.load(std::memory_order_relaxed), compile_count, compile_ms);
+			Log::WriteToConsoleAndLog(fmt::sprintf(
+			    "Shader program cache (session memory only): hits=%" PRIu64
+			    " source_misses=%" PRIu64 " permutation_misses=%" PRIu64
+			    " compile_misses=%" PRIu64 " last_compile_ms=%" PRId64 "\n",
+			    program_hits.load(std::memory_order_relaxed),
+			    source_misses.load(std::memory_order_relaxed),
+			    permutation_misses.load(std::memory_order_relaxed), compile_count, compile_ms));
 		}
 		input_info.stage = {.program = &permutation.program, .resources = std::move(resources)};
 		permutation.program.bindings.AdvancePushData(push_data_cursor);
@@ -412,6 +425,8 @@ struct PipelineCache::ProgramCache {
 	uint64_t                                                    next_shader_id = 0;
 	std::atomic<uint64_t>                                       program_hits {0};
 	std::atomic<uint64_t>                                       compile_misses {0};
+	std::atomic<uint64_t>                                       source_misses {0};
+	std::atomic<uint64_t>                                       permutation_misses {0};
 };
 
 PipelineCache::PipelineCache(GraphicContext& graphics)
