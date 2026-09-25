@@ -255,7 +255,8 @@ void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& p
                             vk::PipelineCache                      driver_cache);
 void CreatePipelineInternal(GraphicContext& graphics, PipelineCache::Pipeline& pipeline,
                             const ShaderComputeInputInfo& input_info,
-                            vk::ShaderModule compute_module, vk::PipelineCache driver_cache);
+                            vk::ShaderModule compute_module, uint64_t compute_shader_id,
+                            vk::PipelineCache driver_cache);
 
 } // namespace Libs::Graphics
 
